@@ -54,42 +54,77 @@ int main(int argc, char const *argv[])
         switch (argv[3][0])
         {
         case '+':
-            // TIME(my_res = num1 + num2, "Dark")
-            // TIME(res = mpz1 + mpz2, "GMP")
+            #ifdef TIMER
+            TIME(my_res = num1 + num2, "Dark")
+            TIME(res = mpz1 + mpz2, "GMP")
+            #endif
+            #ifndef TIMER
             RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            #endif
             convres = res.get_str();
+            #ifdef PRINT
+            std::cout << convres << "\n" << my_res << "\n" << std::endl;
+            #endif
             assert(my_res == convres);
             break;
         
         case '-':
-            // TIME(my_res = num1 - num2, "Dark")
-            // TIME(res = mpz1 - mpz2, "GMP")
+            #ifdef TIMER
+            TIME(my_res = num1 - num2, "Dark")
+            TIME(res = mpz1 - mpz2, "GMP")
+            #endif
+            #ifndef TIMER
             RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            #endif
             convres = res.get_str();
+            #ifdef PRINT
+            std::cout << convres << "\n" << my_res << "\n" << std::endl;
+            #endif
             assert(my_res == convres);
             break;
 
         case 'x':
-            // TIME(my_res = num1 * num2, "Dark")
-            // TIME(res = mpz1 * mpz2, "GMP")
+            #ifdef TIMER
+            TIME(my_res = num1 * num2, "Dark")
+            TIME(res = mpz1 * mpz2, "GMP")
+            #endif
+            #ifndef TIMER
             RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            #endif
             convres = res.get_str();
+            #ifdef PRINT
+            std::cout << convres << "\n" << my_res << "\n" << std::endl;
+            #endif
             assert(my_res == convres);
             break;
 
         case '/':
-            // TIME(my_res = num1 / num2, "Dark")
-            // TIME(res = mpz1 / mpz2, "GMP")
+            #ifdef TIMER
+            TIME(my_res = num1 / num2, "Dark")
+            TIME(res = mpz1 / mpz2, "GMP")
+            #endif
+            #ifndef TIMER
             RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            #endif
             convres = res.get_str();
+            #ifdef PRINT
+            std::cout << convres << "\n" << my_res << "\n" << std::endl;
+            #endif
             assert(my_res == convres);
             break;
 
         case '%':
-            // TIME(my_res = num1 % num2, "Dark")
-            // TIME(res = mpz1 % mpz2, "GMP")
+            #ifdef TIMER
+            TIME(my_res = num1 % num2, "Dark")
+            TIME(res = mpz1 % mpz2, "GMP")
+            #endif
+            #ifndef TIMER
             RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            #endif
             convres = res.get_str();
+            #ifdef PRINT
+            std::cout << convres << "\n" << my_res << "\n" << std::endl;
+            #endif
             assert(my_res == convres);
             break;
 

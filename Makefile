@@ -9,7 +9,19 @@ $(APP): $(CPPFILES)
 	$(GPP) $(CPPFLAGS) $(CPPFILES) $(GMPFLAGS) -o $(APP)
 
 clean:
-	/bin/rm -rf $(APP)
+	rm -rf $(APP)
+
+time: $(CPPFILES)
+	$(GPP) $(CPPFLAGS) -DTIMER $(CPPFILES) $(GMPFLAGS) -o $(APP)
+
+print: $(CPPFILES)
+	$(GPP) $(CPPFLAGS) -DPRINT $(CPPFILES) $(GMPFLAGS) -o $(APP)
+
+print_time: $(CPPFILES)
+	$(GPP) $(CPPFLAGS) -DPRINT -DTIMER $(CPPFILES) $(GMPFLAGS) -o $(APP)
 
 test: $(APP)
 	./bigint $(ND1) $(ND2) $(OP) $(ITER)
+
+memory: $(APP)
+	valgrind --leak-check=full -s ./bigint $(ND1) $(ND2) $(OP) $(ITER)

@@ -1,4 +1,5 @@
 #include "bigint.h"
+#define all(v) v.begin(), v.end()
 
 
 bigint::bigint(): bignum(1, 0) {}
@@ -18,7 +19,8 @@ bigint::bigint(const std::string& num): bignum((num.size() - 1) / 9 + 1, 0)
     int i, j = 0;
     for (i = num.size(); i >= 9; i -= 9, j++)
         bignum[j] = atoi(num.substr(i-9, 9).c_str());
-    bignum[j] = atoi(num.substr(0, i).c_str());
+    if (i)
+        bignum[j] = atoi(num.substr(0, i).c_str());
 }
 
 
@@ -28,7 +30,7 @@ bigint::bigint(const std::vector<u_int32_t>& num): bignum(num) {}
 bigint::bigint(const bigint &num): bignum(num.bignum) {}
 
 
-bigint::bigint(bigint &&num): bignum(std::move(num.bignum)) {}
+bigint::bigint(bigint &&num) noexcept: bignum(std::move(num.bignum)) {}
 
 
 bigint& bigint::operator=(const bigint &num)
@@ -39,7 +41,7 @@ bigint& bigint::operator=(const bigint &num)
 }
 
 
-bigint& bigint::operator=(bigint &&num)
+bigint& bigint::operator=(bigint &&num) noexcept
 {
     if (this != &num)
         this->bignum = std::move(num.bignum);
@@ -50,7 +52,7 @@ bigint& bigint::operator=(bigint &&num)
 bigint::~bigint() { }
 
 
-inline bigint bigint::operator+(const bigint &num) const
+bigint bigint::operator+(const bigint &num) const
 {
     bigint ret(*this);
     ret += num;
@@ -58,7 +60,7 @@ inline bigint bigint::operator+(const bigint &num) const
 }
 
 
-inline bigint bigint::operator-(const bigint &num) const
+bigint bigint::operator-(const bigint &num) const
 {
     bigint ret(*this);
     ret -= num;
@@ -66,7 +68,7 @@ inline bigint bigint::operator-(const bigint &num) const
 }
 
 
-inline bigint bigint::operator*(const bigint &num) const
+bigint bigint::operator*(const bigint &num) const
 {
     bigint ret(*this);
     ret *= num;
@@ -74,7 +76,7 @@ inline bigint bigint::operator*(const bigint &num) const
 }
 
 
-inline bigint bigint::operator/(const bigint &num) const
+bigint bigint::operator/(const bigint &num) const
 {
     bigint ret(*this);
     ret /= num;
@@ -82,7 +84,7 @@ inline bigint bigint::operator/(const bigint &num) const
 }
 
 
-inline bigint bigint::operator%(const bigint &num) const
+bigint bigint::operator%(const bigint &num) const
 {
     bigint ret(*this);
     ret %= num;
@@ -105,19 +107,19 @@ bool bigint::operator==(const bigint &num) const
 }
 
 
-inline bool bigint::operator!=(const bigint &num) const
+bool bigint::operator!=(const bigint &num) const
 {
     return !(*this == num);
 }
 
 
-inline bool bigint::operator>=(const bigint &num) const
+bool bigint::operator>=(const bigint &num) const
 {
     return !(*this < num);
 }
 
 
-inline bool bigint::operator<=(const bigint &num) const
+bool bigint::operator<=(const bigint &num) const
 {
     return !(*this > num);
 }
@@ -243,8 +245,64 @@ bigint& bigint::operator-=(const bigint &num)
 
 bigint& bigint::operator*=(const bigint &num)
 {
-    // Grade school algo (might do Karatsuba later...)
-    // Need Karatsuba for > 10000 digits (really notice when > 100000 digits)
+    // Karatsuba for > 100 'digits' (each 'digit' is a 10 digit number)
+    if (bignum.size() < 100)
+        return regular_multiplication(num);
+
+    *this = std::move(karatsuba(*this, num));
+    return *this;
+}
+
+
+bigint bigint::karatsuba(bigint mul1, bigint mul2)
+{
+    if (mul1.bignum.size() == 0)
+        return bigint(0);
+
+    if (mul1.bignum.size() < mul2.bignum.size())
+        for (u_int64_t i = 0; i < mul2.bignum.size() - mul1.bignum.size(); i++)
+            mul1.bignum.emplace_back(0);
+
+    for (u_int64_t i = 0; i < mul1.bignum.size() - mul2.bignum.size(); i++)
+        mul2.bignum.emplace_back(0);
+
+    if (mul1.bignum.size() == 1)
+    {
+        bigint res(mul1.bignum[0]);
+        res *= mul2.bignum[0];
+        return res;
+    }
+
+    u_int64_t shift = mul1.bignum.size() >> 1;
+    bigint lm1(std::vector<u_int32_t>(mul1.bignum.begin(), mul1.bignum.begin() + shift));
+    bigint lm2(std::vector<u_int32_t>(mul2.bignum.begin(), mul2.bignum.begin() + shift));
+    bigint rm1(std::vector<u_int32_t>(mul1.bignum.begin() + shift, mul1.bignum.end()));
+    bigint rm2(std::vector<u_int32_t>(mul2.bignum.begin() + shift, mul2.bignum.end()));
+
+    bigint lhalf(karatsuba(lm1, lm2));
+    bigint rhalf(karatsuba(rm1, rm2));
+    bigint top(lm1 + rm1);
+    bigint bottom(lm2 + rm2);
+    bigint middle(karatsuba(top, bottom) - lhalf - rhalf);
+
+    // Shift middle
+    std::reverse(all(middle.bignum));
+    for (u_int64_t i = 0; i < shift; i++)
+        middle.bignum.emplace_back(0);
+    std::reverse(all(middle.bignum));
+
+    // Shift right half
+    std::reverse(all(rhalf.bignum));
+    for (u_int64_t i = 0; i < shift << 1; i++)
+        rhalf.bignum.emplace_back(0);
+    std::reverse(all(rhalf.bignum));
+
+    return lhalf + middle + rhalf;
+}
+
+
+bigint& bigint::regular_multiplication(const bigint &num)
+{
     u_int64_t shift = 0;
     bigint orig(*this);
     this->bignum.clear();
@@ -332,3 +390,4 @@ bigint& bigint::operator%=(u_int64_t num)
     *this = bigint((uint32_t) pmod);
     return *this;
 }
+
