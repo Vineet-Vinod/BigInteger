@@ -21,7 +21,7 @@ private:
     bigint& operator/=(u_int64_t num);
     bigint& operator%=(u_int64_t num);
     bigint& regular_multiplication(const bigint &num);
-    bigint karatsuba(bigint mul1, bigint mul2);
+    static bigint karatsuba(bigint mul1, bigint mul2);
 
 public:
     bigint();                                 // Default constructor
@@ -53,6 +53,7 @@ public:
     bigint& operator/=(const bigint &num);
     bigint& operator%=(const bigint &num);
 
+    u_int64_t size() const;
     friend std::ostream& operator<<(std::ostream &o, const bigint &num);
 };
 

@@ -127,13 +127,13 @@ bool bigint::operator<=(const bigint &num) const
 
 bool bigint::operator>(const bigint &num) const
 {
-    if (num.bignum.size() > this->bignum.size())
+    if (num.size() > this->size())
         return false;
 
-    if (num.bignum.size() < this->bignum.size())
+    if (num.size() < this->size())
         return true;
 
-    for (size_t l = num.bignum.size() - 1; l >= 0; l--)
+    for (size_t l = num.size() - 1; l >= 0; l--)
     {
         if (num.bignum[l] > this->bignum[l])
             return false;
@@ -148,13 +148,13 @@ bool bigint::operator>(const bigint &num) const
 
 bool bigint::operator<(const bigint &num) const
 {
-    if (num.bignum.size() < this->bignum.size())
+    if (num.size() < this->size())
         return false;
 
-    if (num.bignum.size() > this->bignum.size())
+    if (num.size() > this->size())
         return true;
 
-    for (size_t l = num.bignum.size() - 1; l >= 0; l--)
+    for (size_t l = num.size() - 1; l >= 0; l--)
     {
         if (num.bignum[l] < this->bignum[l])
             return false;
@@ -167,8 +167,14 @@ bool bigint::operator<(const bigint &num) const
 }
 
 
-bigint& bigint::operator+=(const bigint &num)
+bigint& bigint::operator+=(const bigint &addend)
 {
+    bigint num(addend);
+    while (bignum.size() > 1 && !bignum[bignum.size()-1])
+        bignum.pop_back();
+    while (num.bignum.size() > 1 && !num.bignum[num.bignum.size()-1])
+        num.bignum.pop_back();
+
     size_t l1, l2, carry;
     for (l1 = 0, l2 = 0, carry = 0; l1 < num.bignum.size() && l2 < this->bignum.size(); l1++, l2++)
     {
@@ -201,15 +207,21 @@ bigint& bigint::operator+=(const bigint &num)
 }
 
 
-bigint& bigint::operator-=(const bigint &num)
+bigint& bigint::operator-=(const bigint &sub)
 {
-    assert(*this >= num);
-    if (*this == num)
+    assert(*this >= sub);
+    if (*this == sub)
     {
         this->bignum.clear();
         this->bignum.emplace_back(0);
         return *this;
     }
+
+    bigint num(sub);
+    while (bignum.size() > 1 && !bignum[bignum.size()-1])
+        bignum.pop_back();
+    while (num.bignum.size() > 1 && !num.bignum[num.bignum.size()-1])
+        num.bignum.pop_back();
 
     size_t l, borrow, nborrow;
     for (l = 0, borrow = 0, nborrow = 0; l < num.bignum.size(); l++, borrow = nborrow)
@@ -328,6 +340,20 @@ bigint& bigint::operator/=(const bigint &num)
 bigint& bigint::operator%=(const bigint &num)
 {
     return *this;
+}
+
+
+u_int64_t bigint::size() const
+{
+    u_int64_t ret = bignum.size();
+    for (u_int64_t i = ret - 1; i > 0; i--)
+    {
+        if (bignum[i])
+            break;
+        else
+            ret--;
+    }
+    return ret;
 }
 
 

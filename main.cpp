@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
             TIME(res = mpz1 - mpz2, "GMP")
             #endif
             #ifndef TIMER
-            RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            RACE(my_res = num1 - num2, res = mpz1 - mpz2, dark, gmp)
             #endif
             convres = res.get_str();
             #ifdef PRINT
@@ -89,7 +89,7 @@ int main(int argc, char const *argv[])
             TIME(res = mpz1 * mpz2, "GMP")
             #endif
             #ifndef TIMER
-            RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            RACE(my_res = num1 * num2, res = mpz1 * mpz2, dark, gmp)
             #endif
             convres = res.get_str();
             #ifdef PRINT
@@ -104,7 +104,7 @@ int main(int argc, char const *argv[])
             TIME(res = mpz1 / mpz2, "GMP")
             #endif
             #ifndef TIMER
-            RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            RACE(my_res = num1 / num2, res = mpz1 / mpz2, dark, gmp)
             #endif
             convres = res.get_str();
             #ifdef PRINT
@@ -119,7 +119,7 @@ int main(int argc, char const *argv[])
             TIME(res = mpz1 % mpz2, "GMP")
             #endif
             #ifndef TIMER
-            RACE(my_res = num1 + num2, res = mpz1 + mpz2, dark, gmp)
+            RACE(my_res = num1 % num2, res = mpz1 % mpz2, dark, gmp)
             #endif
             convres = res.get_str();
             #ifdef PRINT
