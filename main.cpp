@@ -7,7 +7,6 @@
 // Macros for benching performance against the GMP Library
 #define TIME(loc, src) { auto start = std::chrono::high_resolution_clock::now(); loc; auto end = std::chrono::high_resolution_clock::now(); std::chrono::duration<double> duration = end - start; std::cout << src << " elapsed time: " << duration.count() << " seconds\n"; }
 
-
 #define RACE(loc1, loc2, var1, var2) { auto start = std::chrono::high_resolution_clock::now(); loc1; auto end = std::chrono::high_resolution_clock::now(); std::chrono::duration<double> duration1 = end - start; start = std::chrono::high_resolution_clock::now(); loc2; end = std::chrono::high_resolution_clock::now(); std::chrono::duration<double> duration2 = end - start; if (duration1 < duration2) var1++; else var2++; }
 
 
@@ -20,7 +19,15 @@ static std::uniform_int_distribution<> distr1(1,9);
 std::string generate(int num_digs)
 {
     std::string ret;
-    ret.reserve(num_digs);
+    
+    if (distr(gen) & 1)
+    {
+        ret.reserve(num_digs+1);
+        ret.push_back('-');
+    }
+    else
+        ret.reserve(num_digs);
+
     ret.push_back(distr1(gen)+'0');
     for (int i = 1; i < num_digs; i++)
     {
@@ -97,7 +104,7 @@ int main(int argc, char const *argv[])
             #endif
             assert(my_res == convres);
             break;
-
+        /*
         case '/':
             #ifdef TIMER
             TIME(my_res = num1 / num2, "Dark")
@@ -127,7 +134,7 @@ int main(int argc, char const *argv[])
             #endif
             assert(my_res == convres);
             break;
-
+        */
         default:
             std::cout << "NOT IMPLEMENTED!" << std::endl;
         }

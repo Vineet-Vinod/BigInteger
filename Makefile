@@ -10,7 +10,7 @@ $(APP): $(CPPFILES)
 
 debug: $(CPPFILES)
 	$(GPP) $(CPPFLAGS) -g -O0 $(CPPFILES) $(GMPFLAGS) -o $(APP)
-	gdb ./bigint
+	gdb --args ./bigint $(ND1) $(ND2) $(OP) $(ITER)
 
 clean:
 	rm -rf $(APP)
@@ -28,4 +28,4 @@ test: $(APP)
 	./bigint $(ND1) $(ND2) $(OP) $(ITER)
 
 memory: $(APP)
-	valgrind --leak-check=full -s ./bigint $(ND1) $(ND2) $(OP) $(ITER)
+	valgrind --track-origins=yes --leak-check=full --show-reachable=yes -s ./bigint $(ND1) $(ND2) $(OP) $(ITER)

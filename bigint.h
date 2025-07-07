@@ -11,34 +11,47 @@
 #include "cstring"
 
 
-// Deals with only unsigned ints
 class bigint
 {
 private:
+    bool neg;
     std::vector<u_int32_t> bignum;
     static const int BASE = 1'000'000'000;
-    bigint& operator*=(u_int64_t num);
-    bigint& operator/=(u_int64_t num);
-    bigint& operator%=(u_int64_t num);
-    bigint& regular_multiplication(const bigint &num);
-    static bigint karatsuba(bigint mul1, bigint mul2);
+
+    bool abs_greater_than(const bigint &num) const;
+    bool abs_lesser_than(const bigint &num) const;
+
+    static void add_with_shift(bigint &a, const bigint& b, u_int64_t sb);
+    static bigint _add_split(const bigint &a, u_int32_t st, u_int32_t end, u_int32_t split);
+    static void _sub(bigint &a, const bigint &b);
+    static void sub(bigint &a, const bigint &b);
+    static bigint multiply(const bigint &mul1, const bigint &mul2, u_int32_t m1_st, u_int32_t m1_end, u_int32_t m2_st, u_int32_t m2_end);
+    static void regular_multiplication(bigint &mul, const bigint &num);
+    bigint& operator*=(u_int32_t num);
+    // bigint& operator/=(u_int64_t num);
+    // bigint& operator%=(u_int64_t num);
+
+    void pop_leading_zeros();
 
 public:
-    bigint();                                 // Default constructor
-    bigint(u_int32_t num);                    // int constructor
-    bigint(const std::string& num);           // string constructor
-    bigint(const std::vector<u_int32_t>& num);// vector constructor
-    bigint(const bigint &num);                // copy constructor
-    bigint(bigint &&num) noexcept;            // move constructor
-    bigint& operator=(const bigint &num);     // copy assignment
-    bigint& operator=(bigint &&num) noexcept; // move assignment
-    ~bigint();                                // Destructor
+    bigint();
+    bigint(int64_t num);
+    bigint(const std::string& num);
+    bigint(const bigint &num);
+    bigint(const bigint &num, u_int32_t st, u_int32_t end);
+    bigint(bigint &&num) noexcept;
+    bigint& operator=(const bigint &num);
+    bigint& operator=(bigint &&num) noexcept;
+    ~bigint();
+    
+    u_int64_t num_digits() const;
+    friend std::ostream& operator<<(std::ostream &o, const bigint &num);
 
     bigint operator+(const bigint &num) const;
     bigint operator-(const bigint &num) const;
     bigint operator*(const bigint &num) const;
-    bigint operator/(const bigint &num) const;
-    bigint operator%(const bigint &num) const;
+    // bigint operator/(const bigint &num) const;
+    // bigint operator%(const bigint &num) const;
 
     bool operator==(const bigint &num) const;
     bool operator!=(const bigint &num) const;
@@ -50,11 +63,8 @@ public:
     bigint& operator+=(const bigint &num);
     bigint& operator-=(const bigint &num);
     bigint& operator*=(const bigint &num);
-    bigint& operator/=(const bigint &num);
-    bigint& operator%=(const bigint &num);
-
-    u_int64_t size() const;
-    friend std::ostream& operator<<(std::ostream &o, const bigint &num);
+    // bigint& operator/=(const bigint &num);
+    // bigint& operator%=(const bigint &num);
 };
 
 
