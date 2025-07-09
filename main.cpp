@@ -104,7 +104,7 @@ int main(int argc, char const *argv[])
             #endif
             assert(my_res == convres);
             break;
-        /*
+        
         case '/':
             #ifdef TIMER
             TIME(my_res = num1 / num2, "Dark")
@@ -134,7 +134,7 @@ int main(int argc, char const *argv[])
             #endif
             assert(my_res == convres);
             break;
-        */
+        
         default:
             std::cout << "NOT IMPLEMENTED!" << std::endl;
         }

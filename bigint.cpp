@@ -19,13 +19,22 @@ bigint::bigint(const std::string &num) : neg(num[0] == '-'), bignum((num.size() 
     int i, j = 0;
     for (i = num.size(); i >= (neg ? 10 : 9); i -= 9, j++)
         bignum[j] = atoi(num.substr(i - 9, 9).c_str());
-    if (i)
+    if ((!neg && i) || (neg && (i-1)))
         bignum[j] = atoi(num.substr(neg, neg ? i - 1 : i).c_str());
 }
 
 bigint::bigint(const bigint &num) : neg(num.neg), bignum(num.bignum) {}
 
 bigint::bigint(const bigint &num, u_int32_t st, u_int32_t end) : neg(num.neg), bignum(num.bignum.begin() + st, num.bignum.begin() + end) {}
+
+bigint::bigint(const std::vector<u_int32_t> bnum, bool sign)
+{
+    for (const auto &num: bignum)
+        assert(num < bigint::BASE);
+
+    this->neg = sign;
+    this->bignum = bnum;
+}
 
 bigint::bigint(bigint &&num) noexcept : neg(num.neg), bignum(std::move(num.bignum)) {}
 
@@ -87,7 +96,6 @@ bigint bigint::operator*(const bigint &num) const
     return ret;
 }
 
-/*
 bigint bigint::operator/(const bigint &num) const
 {
     bigint ret(*this);
@@ -101,7 +109,6 @@ bigint bigint::operator%(const bigint &num) const
     ret %= num;
     return ret;
 }
-*/
 
 
 /*Logical Operations and private helpers*/
@@ -250,17 +257,18 @@ bigint &bigint::operator*=(const bigint &num)
     return *this;
 }
 
-/*
 bigint& bigint::operator/=(const bigint &num)
 {
+    *this = std::move(div_mod(*this, num, true));
     return *this;
 }
 
 bigint& bigint::operator%=(const bigint &num)
 {
+    *this = std::move(div_mod(*this, num, false));
     return *this;
 }
-*/
+
 
 void bigint::add_with_shift(bigint &a, const bigint &b, u_int64_t sb)
 {
@@ -331,43 +339,38 @@ bigint bigint::_add_split(const bigint &a, u_int32_t st, u_int32_t end, u_int32_
     return ret;
 }
 
-void bigint::_sub(bigint &a, const bigint &b)
+void bigint::_sub(std::vector<u_int32_t> &a, const std::vector<u_int32_t> &b)
 {
     // Ensure there are no leading zeros
-    if (a.num_digits() > 1)
-        assert(a.bignum[a.num_digits() - 1]);
-    if (b.num_digits() > 1)
-        assert(b.bignum[b.num_digits() - 1]);
+    if (a.size() > 1)
+        assert(a[a.size() - 1]);
+    if (b.size() > 1)
+        assert(b[b.size() - 1]);
 
     size_t l, borrow, nborrow;
-    for (l = 0, borrow = 0, nborrow = 0; l < b.num_digits(); l++, borrow = nborrow)
+    for (l = 0, borrow = 0, nborrow = 0; l < b.size(); l++, borrow = nborrow)
     {
-        if (a.bignum[l] < borrow + b.bignum[l])
+        if (a[l] < borrow + b[l])
         {
-            a.bignum[l] += BASE;
+            a[l] += BASE;
             nborrow = 1;
         }
         else
             nborrow = 0;
-        a.bignum[l] -= borrow + b.bignum[l];
+        a[l] -= borrow + b[l];
     }
 
-    for (; l < a.num_digits(); l++, borrow = nborrow)
+    for (; l < a.size(); l++, borrow = nborrow)
     {
-        if (a.bignum[l] < borrow)
+        if (a[l] < borrow)
         {
-            a.bignum[l] += BASE;
+            a[l] += BASE;
             nborrow = 1;
         }
         else
             nborrow = 0;
-        a.bignum[l] -= borrow;
+        a[l] -= borrow;
     }
-
-    a.pop_leading_zeros();
-
-    if (a.num_digits() > 1)
-        assert(a.bignum[a.num_digits() - 1]);
 }
 
 void bigint::sub(bigint &a, const bigint &b)
@@ -384,14 +387,16 @@ void bigint::sub(bigint &a, const bigint &b)
     if (a.abs_greater_than(b))
     {
         a.neg = orig;
-        bigint::_sub(a, b);
+        bigint::_sub(a.bignum, b.bignum);
+        a.pop_leading_zeros();
     }
 
     else
     {
         bigint a_cpy = std::move(a); // Move a into a copy
         a = b;                       // Copy b into a
-        bigint::_sub(a, a_cpy);
+        bigint::_sub(a.bignum, a_cpy.bignum);
+        a.pop_leading_zeros();
     }
 }
 
@@ -415,8 +420,10 @@ bigint bigint::multiply(const bigint &mul1, const bigint &mul2, u_int32_t m1_st,
     bigint top_sum(bigint::_add_split(mul1, m1_st, m1_end, mid));
     bigint bottom_sum(bigint::_add_split(mul2, m2_st, m2_end, mid));
     bigint midmul(bigint::multiply(top_sum, bottom_sum, 0, top_sum.num_digits(), 0, bottom_sum.num_digits()));
-    bigint::_sub(midmul, lmul);
-    bigint::_sub(midmul, rmul);
+    bigint::_sub(midmul.bignum, lmul.bignum);
+    midmul.pop_leading_zeros();
+    bigint::_sub(midmul.bignum, rmul.bignum);
+    midmul.pop_leading_zeros();
 
     mid -= m1_st;
     bigint::add_with_shift(lmul, midmul, mid);
@@ -473,26 +480,111 @@ bigint &bigint::operator*=(u_int32_t num)
     return *this;
 }
 
-/*
-bigint& bigint::operator/=(u_int64_t num)
+bigint bigint::div_mod(const bigint &dividend, const bigint &divisor, bool div)
 {
+    if (divisor.abs_greater_than(dividend))
+        return div ? bigint(0) : dividend;
 
-}
+    if (!divisor.abs_lesser_than(dividend))
+        return div ? bigint(dividend.neg ^ divisor.neg ? -1 : 1) : bigint(0);
 
-bigint& bigint::operator%=(u_int64_t num)
-{
-    uint64_t pmod = 0;
-    for (auto iter = this->bignum.rbegin(); iter != this->bignum.rend(); iter++)
+    // Implement long division
+    int32_t curr_idx = dividend.num_digits() - divisor.num_digits(), div_digits = curr_idx + 1;
+
+    bigint remainder(dividend, static_cast<u_int32_t>(curr_idx), dividend.num_digits());
+    remainder.bignum.reserve(divisor.num_digits() + 2);
+    remainder.neg = false;
+    
+    bigint div_cpy(divisor);
+    div_cpy.neg = false;
+    
+    bigint quotient;
+    quotient.bignum.reserve(div_digits+1);
+
+    for (--curr_idx; curr_idx >= 0; curr_idx--)
     {
-        pmod *= bigint::BASE;
-        pmod += *iter;
-        pmod %= num;
+        if (remainder.abs_lesser_than(divisor))
+        {
+            quotient.bignum.emplace_back(0);
+            auto& rem = remainder.bignum;
+            rem.emplace_back(0);
+            for (u_int32_t idx = rem.size() - 1; idx > 0; idx--)
+                rem[idx] = rem[idx - 1];
+        }
+
+        else
+            quotient.bignum.emplace_back(bigint::div(remainder, div_cpy, divisor, true));
+
+        remainder.bignum[0] = dividend.bignum[curr_idx];
     }
 
-    *this = bigint((uint32_t) pmod);
-    return *this;
+    if (!remainder.abs_lesser_than(divisor))
+        quotient.bignum.emplace_back(bigint::div(remainder, div_cpy, divisor, false));
+
+    quotient.reverse_num();
+    quotient.pop_leading_zeros();
+    quotient.neg = divisor.neg ^ dividend.neg;
+    remainder.neg = dividend.neg;
+    return div ? quotient : remainder;
 }
-*/
+
+u_int32_t bigint::div(bigint &dividend, bigint &div_cpy, const bigint &divisor, bool shift)
+{
+    u_int32_t l = 1, r = bigint::BASE - 1;
+
+    while (l <= r)
+    {
+        u_int32_t m = (l + r) >> 1;
+        bigint::mul_dig_in_place(div_cpy, divisor, m);
+        if (div_cpy.abs_greater_than(dividend))
+            r = m - 1;
+        else
+            l = m + 1;
+    }
+
+    bigint::mul_dig_in_place(div_cpy, divisor, r);
+    if (!shift)
+        dividend -= div_cpy;
+    
+    else
+    {
+        dividend.bignum.emplace_back(0); // No reallocation needed because sufficient space was reserved
+        auto &divi = dividend.bignum;
+        auto &div = div_cpy.bignum;
+
+        for (u_int32_t idx = dividend.num_digits() - 1; idx > 0; idx--)
+        {
+            divi[idx] = divi[idx - 1];
+
+            if (idx <= div_cpy.num_digits())
+            {
+                if (divi[idx] < div[idx - 1]) // Cannot happen at the Most Significant Digit coz dividend >= div_cpy (by bin search)
+                {
+                    divi[idx + 1]--;
+                    divi[idx] += bigint::BASE;
+                }
+                divi[idx] -= div[idx - 1];
+            }
+        }
+
+        divi[0] = 0;
+        dividend.pop_leading_zeros();
+    }
+
+    return r;
+}
+
+void bigint::mul_dig_in_place(bigint &prod, const bigint &orig, u_int32_t digit)
+{
+    for (u_int32_t idx = 0; idx < orig.num_digits(); idx++)
+        prod.bignum[idx] = orig.bignum[idx];
+
+    for (u_int32_t idx = orig.num_digits(); idx < prod.num_digits(); idx++)
+        prod.bignum[idx] = 0;
+    
+    prod *= digit;
+    prod.pop_leading_zeros();
+}
 
 
 /*Private helpers*/
@@ -500,4 +592,9 @@ void bigint::pop_leading_zeros()
 {
     for (u_int64_t nd = num_digits(); nd > 1 && bignum[nd - 1] == 0; nd--)
         bignum.pop_back();
+}
+
+void bigint::reverse_num()
+{
+    std::reverse(all(bignum));
 }
